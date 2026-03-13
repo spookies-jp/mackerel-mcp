@@ -1,4 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { createMcpHandler } from "agents/mcp";
 import { Hono } from "hono";
 import { AlertTool } from "./tools/alertTool.js";
 import { DashboardTool } from "./tools/dashboardTool.js";
@@ -11,7 +12,6 @@ import { ServiceMetricsTool } from "./tools/serviceMetricsTool.js";
 import { HostMetricsTool } from "./tools/hostMetricsTool.js";
 import { ApmTool } from "./tools/apmTool.js";
 import { SERVER_CONFIG, MACKEREL_CONFIG, API_ROUTE } from "./config.js";
-import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 
 export interface Env {
   MACKEREL_APIKEY?: string;
@@ -19,7 +19,7 @@ export interface Env {
 
 const BASE_URL = MACKEREL_CONFIG.baseUrl;
 
-function createServer(mackerelClient: MackerelClient) {
+export function createServer(mackerelClient: MackerelClient) {
   const alertTool = new AlertTool(mackerelClient);
   const dashboardTool = new DashboardTool(mackerelClient);
   const monitorTool = new MonitorTool(mackerelClient);
@@ -264,14 +264,10 @@ app.all(API_ROUTE, async (c) => {
 
   const mackerelClient = new MackerelClient(BASE_URL, apiKey);
   const server = createServer(mackerelClient);
-
-  const transport = new WebStandardStreamableHTTPServerTransport({
-    sessionIdGenerator: () => crypto.randomUUID(),
-  });
-
-  await server.connect(transport);
-
-  return transport.handleRequest(c.req.raw);
+  return createMcpHandler(server, {
+    enableJsonResponse: true,
+    route: API_ROUTE,
+  })(c.req.raw, c.env, c.executionCtx);
 });
 
 export default app;

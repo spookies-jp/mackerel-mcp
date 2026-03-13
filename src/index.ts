@@ -1,5 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { Hono } from "hono";
 import { AlertTool } from "./tools/alertTool.js";
 import { DashboardTool } from "./tools/dashboardTool.js";
 import { MonitorTool } from "./tools/monitorTool.js";
@@ -10,11 +10,16 @@ import { MackerelClient } from "./client.js";
 import { ServiceMetricsTool } from "./tools/serviceMetricsTool.js";
 import { HostMetricsTool } from "./tools/hostMetricsTool.js";
 import { ApmTool } from "./tools/apmTool.js";
+import { SERVER_CONFIG, MACKEREL_CONFIG, API_ROUTE } from "./config.js";
+import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 
-const BASE_URL = "https://api.mackerelio.com";
+export interface Env {
+  MACKEREL_APIKEY?: string;
+}
 
-async function main() {
-  const mackerelClient = new MackerelClient(BASE_URL, getApiKey());
+const BASE_URL = MACKEREL_CONFIG.baseUrl;
+
+function createServer(mackerelClient: MackerelClient) {
   const alertTool = new AlertTool(mackerelClient);
   const dashboardTool = new DashboardTool(mackerelClient);
   const monitorTool = new MonitorTool(mackerelClient);
@@ -25,34 +30,16 @@ async function main() {
   const traceTool = new TraceTool(mackerelClient);
   const apmTool = new ApmTool(mackerelClient);
 
-  // Create an MCP server
   const server = new McpServer({
-    name: "@mackerel/mcp-server",
-    version: "0.0.1",
+    name: SERVER_CONFIG.name,
+    version: SERVER_CONFIG.version,
   });
 
   server.registerTool(
     "list_alerts",
     {
       title: "List Alerts",
-      description: `Retrieve alerts from Mackerel.
-
-🔍 USE THIS TOOL WHEN USERS:
-- Check currently active alerts
-- Get a list of alerts including closed alerts
-
-<examples>
-### Get opening alerts
-\`\`\`
-list_alerts()
-\`\`\`
-
-### Get all alerts
-\`\`\`
-list_alerts(withClosed=true)
-\`\`\`
-</examples>
-`,
+      description: "Retrieve alerts from Mackerel.",
       inputSchema: AlertTool.ListAlertsToolInput.shape,
       annotations: {
         readOnlyHint: true,
@@ -65,18 +52,7 @@ list_alerts(withClosed=true)
     "get_alert",
     {
       title: "Get Alert",
-      description: `Retrieve a specific alert by ID from Mackerel.
-
-🔍 USE THIS TOOL WHEN USERS:
-- Investigate a particular alert
-
-<examples>
-### Get alert by ID
-\`\`\`
-get_alert(alertId=3Yr)
-\`\`\`
-</example>
-`,
+      description: "Retrieve a specific alert by ID from Mackerel.",
       inputSchema: AlertTool.GetAlertToolInput.shape,
       annotations: {
         readOnlyHint: true,
@@ -89,19 +65,7 @@ get_alert(alertId=3Yr)
     "get_alert_logs",
     {
       title: "Get Alert Logs",
-      description: `Retrieve logs for a specific alert by ID from Mackerel.
-
-🔍 USE THIS TOOL WHEN USERS:
-- View status change history for a specific alert
-- Investigate alert transitions and their reasons
-
-<examples>
-### Get alert logs for the alert
-\`\`\`
-get_alert_logs(alertId=3Yr)
-\`\`\`
-</example>
-`,
+      description: "Retrieve logs for a specific alert by ID from Mackerel.",
       inputSchema: AlertTool.GetAlertLogsToolInput.shape,
       annotations: {
         readOnlyHint: true,
@@ -114,19 +78,7 @@ get_alert_logs(alertId=3Yr)
     "list_dashboards",
     {
       title: "List Dashboards",
-      description: `Retrieve all dashboards from Mackerel.
-
-🔍 USE THIS TOOL WHEN USERS:
-- Get a list of dashboards
-- Get ID and title of each dashboard
-
-<examples>
-### Get all dashboards
-\`\`\`
-list_dashboards()
-\`\`\`
-</example>
-`,
+      description: "Retrieve all dashboards from Mackerel.",
       inputSchema: DashboardTool.ListDashboardsToolInput.shape,
       annotations: {
         readOnlyHint: true,
@@ -139,19 +91,7 @@ list_dashboards()
     "get_dashboard",
     {
       title: "Get Dashboard",
-      description: `Retrieve a specific dashboard by ID from Mackerel.
-
-🔍 USE THIS TOOL WHEN USERS:
-- Get details of a specific dashboard
-- View dashboard configuration and widgets
-
-<examples>
-### Get dashboard by ID
-\`\`\`
-get_dashboard(dashboardId="3Yr")
-\`\`\`
-</examples>
-`,
+      description: "Retrieve a specific dashboard by ID from Mackerel.",
       inputSchema: DashboardTool.GetDashboardToolInput.shape,
       annotations: {
         readOnlyHint: true,
@@ -164,30 +104,7 @@ get_dashboard(dashboardId="3Yr")
     "update_dashboard",
     {
       title: "Update Dashboard",
-      description: `Update a specific dashboard by ID in Mackerel.
-
-🔍 USE THIS TOOL WHEN USERS:
-- Modify dashboard title, memo, or URL path
-- Update dashboard widgets configuration
-
-<examples>
-### Update dashboard
-\`\`\`
-update_dashboard(
-  dashboardId="3Yr",
-  title="Updated Dashboard",
-  memo="Updated memo",
-  urlPath="updated path",
-  widgets=[{
-    type="markdown",
-    markdown="## Updated Markdown Widget",
-    title="Updated Title",
-    layout: { x: 0, y: 0, width: 6, height: 4 },
-  }]
-)
-\`\`\`
-</examples>
-`,
+      description: "Update a specific dashboard by ID in Mackerel.",
       inputSchema: DashboardTool.UpdateDashboardToolInput.shape,
     },
     dashboardTool.updateDashboard,
@@ -197,40 +114,7 @@ update_dashboard(
     "list_hosts",
     {
       title: "List Hosts",
-      description: `Retrieve hosts from Mackerel.
-
-🔍 USE THIS TOOL WHEN USERS:
-- Get a list of hosts
-- Filter hosts by various criteria (service, role, name, etc.)
-- Check host status and information
-
-<examples>
-### Get all hosts (first 20)
-\`\`\`
-list_hosts()
-\`\`\`
-
-### Get hosts for a specific role
-\`\`\`
-list_hosts(service="web",role=["app"])
-\`\`\`
-
-### Get hosts by status with pagination
-\`\`\`
-list_hosts(status=["working","standby"], limit=10, offset=0)
-\`\`\`
-
-### Get hosts in summary format (reduced response size)
-\`\`\`
-list_hosts(summary=true)
-\`\`\`
-
-### Get next page of hosts
-\`\`\`
-list_hosts(limit=20, offset=20)
-\`\`\`
-</examples>
-`,
+      description: "Retrieve hosts from Mackerel.",
       inputSchema: HostTool.ListHostsToolInput.shape,
       annotations: {
         readOnlyHint: true,
@@ -243,36 +127,7 @@ list_hosts(limit=20, offset=20)
     "get_host_metrics",
     {
       title: "Get Host Metrics",
-      description: `Retrieve metrics data for a specific host from Mackerel.
-
-🔍 USE THIS TOOL WHEN USERS:
-- Get metrics data for a specific host
-- Analyze host performance over time
-
-📊 AVAILABLE METRIC NAMES:
-- **Standard metrics (mackerel-agent)**: loadavg5, cpu.user, memory.used, disk.sda1.reads, network.eth0.rxBytes, etc.
-- **Custom metrics**: custom.myapp.* (user-defined metrics)
-- **AWS integration**: ec2.cpu.used, rds.database_connections.used, etc.
-- **Azure integration**: azure.virtual_machine.cpu.percent, azure.sql_database.cpu.percent, etc.
-- **GCP integration**: gce.instance.cpu.used, etc.
-
-<examples>
-### Get CPU load average for a host
-\`\`\`
-get_host_metrics(hostId="host123", name="loadavg5", from=1609459200, to=1609462800)
-\`\`\`
-
-### Get custom metric
-\`\`\`
-get_host_metrics(hostId="host123", name="custom.myapp.response_time", from=1609459200, to=1609462800)
-\`\`\`
-
-### Get AWS EC2 CPU utilization
-\`\`\`
-get_host_metrics(hostId="host123", name="ec2.cpu.used", from=1609459200, to=1609462800)
-\`\`\`
-</examples>
-`,
+      description: "Retrieve metrics data for a specific host from Mackerel.",
       inputSchema: HostMetricsTool.GetHostMetricsToolInput.shape,
       annotations: {
         readOnlyHint: true,
@@ -285,19 +140,7 @@ get_host_metrics(hostId="host123", name="ec2.cpu.used", from=1609459200, to=1609
     "list_services",
     {
       title: "List Services",
-      description: `Retrieve all services from Mackerel.
-
-🔍 USE THIS TOOL WHEN USERS:
-- Get a list of services
-- View service names, memos, and roles
-
-<examples>
-### Get all services
-\`\`\`
-list_services()
-\`\`\`
-</examples>
-`,
+      description: "Retrieve all services from Mackerel.",
       inputSchema: ServiceTool.ListServicesToolInput.shape,
       annotations: {
         readOnlyHint: true,
@@ -310,31 +153,7 @@ list_services()
     "get_service_metrics",
     {
       title: "Get Service Metrics",
-      description: `Retrieve metrics data for a specific service from Mackerel.
-
-🔍 USE THIS TOOL WHEN USERS:
-- "Service metrics" are metrics that correspond to a service that consists of multiple hosts and their collective roles
-- The following can be visualized and monitored.
-  - The total number of registered users in a service
-  - The number of PVs for a website
-  - Business related KPIs such as sales or the number of orders received from EC sites
-
-📊 AVAILABLE METRIC NAMES:
-- **Custom metrics**: http.response_time, sales.count, analytics.page_view, etc.
-
-
-<examples>
-### Get service response time
-\`\`\`
-get_service_metrics(serviceName="web", name="__externalhttp.responsetime.<monitorId>", from=1609459200, to=1609462800)
-\`\`\`
-
-### Get service page views
-\`\`\`
-get_service_metrics(serviceName="web", name="analytics.page_view", from=1609459200, to=1609462800)
-\`\`\`
-
-</examples>`,
+      description: "Retrieve metrics data for a specific service from Mackerel.",
       inputSchema: ServiceMetricsTool.GetServiceMetricsToolInput.shape,
       annotations: {
         readOnlyHint: true,
@@ -347,19 +166,7 @@ get_service_metrics(serviceName="web", name="analytics.page_view", from=16094592
     "list_monitors",
     {
       title: "List Monitors",
-      description: `Retrieve all monitor configurations from Mackerel.
-
-🔍 USE THIS TOOL WHEN USERS:
-- Get a list of all monitors
-- View monitor configurations
-
-<examples>
-### Get all monitors
-\`\`\`
-list_monitors()
-\`\`\`
-</examples>
-`,
+      description: "Retrieve all monitor configurations from Mackerel.",
       inputSchema: MonitorTool.ListMonitorsToolInput.shape,
       annotations: {
         readOnlyHint: true,
@@ -372,18 +179,7 @@ list_monitors()
     "get_monitor",
     {
       title: "Get Monitor",
-      description: `Retrieve a specific monitor configuration by ID from Mackerel.
-
-🔍 USE THIS TOOL WHEN USERS:
-- Get details of a specific monitor
-
-<examples>
-### Get monitor by ID
-\`\`\`
-get_monitor(monitorId="2cSZzK3XfmB")
-\`\`\`
-</examples>
-`,
+      description: "Retrieve a specific monitor configuration by ID from Mackerel.",
       inputSchema: MonitorTool.GetMonitorToolInput.shape,
       annotations: {
         readOnlyHint: true,
@@ -396,53 +192,7 @@ get_monitor(monitorId="2cSZzK3XfmB")
     "get_trace",
     {
       title: "Get Trace",
-      description: `Retrieve trace data by trace ID from Mackerel for distributed tracing analysis.
-
-🔍 USE THIS TOOL WHEN USERS:
-- Analyze performance bottlenecks in distributed systems
-- Investigate error propagation across microservices
-- Understand request flow and service dependencies
-- Debug latency issues and identify slow operations
-- Generate documentation of system architecture from trace data
-
-<examples>
-### Basic trace retrieval (first page)
-\`\`\`
-get_trace(traceId="abc123def456")
-\`\`\`
-
-### Focus on errors only
-\`\`\`
-get_trace(traceId="abc123def456", errorSpansOnly=true)
-\`\`\`
-
-### Filter spans with duration over 100ms
-\`\`\`
-get_trace(traceId="abc123def456", duration=100)
-\`\`\`
-
-### Detailed analysis with attributes
-\`\`\`
-get_trace(traceId="abc123def456", includeAttributes=true, limit=50)
-\`\`\`
-
-### Minimal view for overview
-\`\`\`
-get_trace(traceId="abc123def456", includeEvents=false, limit=10)
-\`\`\`
-
-### Pagination through large traces
-\`\`\`
-get_trace(traceId="abc123def456", limit=20, offset=0)  # First page
-get_trace(traceId="abc123def456", limit=20, offset=20) # Second page
-\`\`\`
-
-### Combined filtering and pagination
-\`\`\`
-get_trace(traceId="abc123def456", errorSpansOnly=true, limit=10, offset=0)
-\`\`\`
-</examples>
-`,
+      description: "Retrieve trace data by trace ID from Mackerel for distributed tracing analysis.",
       inputSchema: TraceTool.GetTraceToolInput.shape,
       annotations: {
         readOnlyHint: true,
@@ -455,65 +205,7 @@ get_trace(traceId="abc123def456", errorSpansOnly=true, limit=10, offset=0)
     "list_traces",
     {
       title: "List Traces",
-      description: `Search and retrieve traces from Mackerel for distributed tracing analysis.
-
-🔍 USE THIS TOOL WHEN USERS:
-- Search for traces within a time range
-- Find slow traces by latency filtering
-- Filter traces by service, environment, or version
-- Investigate distributed system behavior
-
-<examples>
-### Basic trace search
-\`\`\`
-list_traces(serviceName="my-service", from=1700000000, to=1700001800)
-\`\`\`
-
-### Filter by latency
-\`\`\`
-list_traces(
-  serviceName="my-service",
-  from=1700000000,
-  to=1700001800,
-  minLatencyMillis=100,
-  maxLatencyMillis=1000
-)
-\`\`\`
-
-### Filter by environment and version
-\`\`\`
-list_traces(
-  serviceName="my-service",
-  from=1700000000,
-  to=1700001800,
-  environment="production",
-  version="v1.2.3"
-)
-\`\`\`
-
-### Search by span name
-\`\`\`
-list_traces(
-  serviceName="my-service",
-  from=1700000000,
-  to=1700001800,
-  spanName="HTTP GET /api/users"
-)
-\`\`\`
-
-### Pagination and sorting
-\`\`\`
-list_traces(
-  serviceName="my-service",
-  from=1700000000,
-  to=1700001800,
-  page=2,
-  perPage=50,
-  order={ column: "LATENCY", direction: "DESC" }
-)
-\`\`\`
-</examples>
-`,
+      description: "Search and retrieve traces from Mackerel for distributed tracing analysis.",
       inputSchema: TraceTool.ListTracesToolInput.shape,
       annotations: {
         readOnlyHint: true,
@@ -526,54 +218,7 @@ list_traces(
     "list_http_server_stats",
     {
       title: "List HTTP Server Statistics",
-      description: `Retrieve HTTP server statistics from Mackerel.
-
-🔍 USE THIS TOOL WHEN USERS:
-- Analyze slow HTTP endpoints
-- Identify high-traffic routes
-- Monitor error rates for HTTP requests
-- Investigate API performance issues
-
-<examples>
-### Get HTTP server stats
-\`\`\`
-list_http_server_stats(serviceName="my-service", from=1700000000, to=1700001800)
-\`\`\`
-
-### Filter by environment and version
-\`\`\`
-list_http_server_stats(
-  serviceName="my-service",
-  from=1700000000,
-  to=1700001800,
-  environment="production",
-  version="v1.2.3"
-)
-\`\`\`
-
-### Filter by HTTP method and route
-\`\`\`
-list_http_server_stats(
-  serviceName="my-service",
-  from=1700000000,
-  to=1700001800,
-  method="GET",
-  route="/api/users"
-)
-\`\`\`
-
-### Pagination
-\`\`\`
-list_http_server_stats(
-  serviceName="my-service",
-  from=1700000000,
-  to=1700001800,
-  page=2,
-  perPage=50
-)
-\`\`\`
-</examples>
-`,
+      description: "Retrieve HTTP server statistics from Mackerel.",
       inputSchema: ApmTool.ListHttpServerStatsToolInput.shape,
       annotations: {
         readOnlyHint: true,
@@ -586,53 +231,7 @@ list_http_server_stats(
     "list_db_query_stats",
     {
       title: "List Database Query Statistics",
-      description: `Retrieve database query statistics from Mackerel.
-
-🔍 USE THIS TOOL WHEN USERS:
-- Analyze slow database queries
-- Identify high-frequency queries
-- Investigate database performance issues
-- Monitor query execution patterns
-
-<examples>
-### Get DB stats
-\`\`\`
-list_db_query_stats(serviceName="my-service", from=1700000000, to=1700001800)
-\`\`\`
-
-### Filter by environment and version
-\`\`\`
-list_db_query_stats(
-  serviceName="my-service",
-  from=1700000000,
-  to=1700001800,
-  environment="production",
-  version="v1.2.3"
-)
-\`\`\`
-
-### Search for specific queries
-\`\`\`
-list_db_query_stats(
-  serviceName="my-service",
-  from=1700000000,
-  to=1700001800,
-  query="SELECT * FROM users"
-)
-\`\`\`
-
-### Pagination
-\`\`\`
-list_db_query_stats(
-  serviceName="my-service",
-  from=1700000000,
-  to=1700001800,
-  page=10,
-  perPage=50
-)
-\`\`\`
-</examples>
-`,
+      description: "Retrieve database query statistics from Mackerel.",
       inputSchema: ApmTool.ListDbQueryStatsToolInput.shape,
       annotations: {
         readOnlyHint: true,
@@ -641,21 +240,34 @@ list_db_query_stats(
     apmTool.listDbQueryStats,
   );
 
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error("Mackerel MCP Server running on stdio");
+  return server;
 }
 
-function getApiKey(): string {
-  let apiKey = process.env.MACKEREL_APIKEY;
+const app = new Hono<{ Bindings: Env }>();
+
+app.all(API_ROUTE, async (c) => {
+  const apiKey = c.env.MACKEREL_APIKEY;
+
   if (!apiKey) {
-    throw new Error("MACKEREL_APIKEY environment variable is not set.");
+    return c.json(
+      {
+        error: "Unauthorized",
+        message: "MACKEREL_APIKEY environment variable is not set."
+      },
+      401
+    );
   }
 
-  return apiKey;
-}
+  const mackerelClient = new MackerelClient(BASE_URL, apiKey);
+  const server = createServer(mackerelClient);
 
-main().catch((error) => {
-  console.error("Fatal error in main():", error);
-  process.exit(1);
+  const transport = new WebStandardStreamableHTTPServerTransport({
+    sessionIdGenerator: () => crypto.randomUUID(),
+  });
+  
+  await server.connect(transport);
+  
+  return transport.handleRequest(c.req.raw);
 });
+
+export default app;

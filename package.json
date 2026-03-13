@@ -1,32 +1,24 @@
 {
-  "name": "@mackerel/mcp-server",
-  "version": "0.4.0",
+  "name": "@spookies/mackerel-mcp",
+  "version": "0.5.0",
   "packageManager": "pnpm@10.12.1",
   "publishConfig": {
     "access": "public"
   },
-  "description": "A Model Context Protocol server for interacting with Mackerel",
-  "main": "build/index.js",
-  "bin": {
-    "mcp-server": "build/index.js"
-  },
+  "description": "A Model Context Protocol server for interacting with Mackerel - Deployable on Cloudflare Workers",
   "type": "module",
   "scripts": {
-    "build": "tsdown",
-    "dev": "tsx src/index.ts",
-    "inspector": "npx @modelcontextprotocol/inspector -e MACKEREL_APIKEY=$MACKEREL_APIKEY tsx src/index.ts",
+    "deploy": "node scripts/replace-baseurl.js && wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "cf-typegen": "wrangler types",
+    "typecheck": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "replace-baseurl": "node scripts/replace-baseurl.js"
   },
   "license": "Apache-2.0",
-  "files": [
-    "build",
-    "README.md",
-    "LICENSE"
-  ],
-  "types": "build/index.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/mackerelio-labs/mcp-server.git"
@@ -39,19 +31,21 @@
   "keywords": [
     "mackerel",
     "model-context-protocol",
-    "mcp"
+    "mcp",
+    "cloudflare-workers"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
+    "hono": "^4.12.5",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260312.0",
     "@types/node": "^25.5.0",
     "msw": "^2.12.10",
     "prettier": "^3.8.1",
-    "tsdown": "^0.21.2",
-    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.0",
+    "wrangler": "^4.71.0"
   }
 }

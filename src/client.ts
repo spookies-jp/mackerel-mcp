@@ -2,21 +2,23 @@ import { z } from "zod";
 import { DashboardTool } from "./tools/dashboardTool.js";
 import { applyPagination } from "./tools/util.js";
 
-interface CacheEntry {
-  data: any;
-  timestamp: number;
-}
-
 export class MackerelClient {
   private readonly baseUrl: string;
-  private readonly apiKey: string;
-  private readonly cacheMap: Map<string, CacheEntry> = new Map();
+  private apiKey: string;
   private readonly cacheTTL: number;
 
   constructor(baseUrl: string, apiKey: string, cacheTTL: number = 300) {
     this.baseUrl = baseUrl;
     this.apiKey = apiKey;
-    this.cacheTTL = cacheTTL * 1000; // Convert seconds to milliseconds
+    this.cacheTTL = cacheTTL;
+  }
+
+  setApiKey(apiKey: string): void {
+    this.apiKey = apiKey;
+  }
+
+  getApiKey(): string {
+    return this.apiKey;
   }
 
   private getCacheKey(
@@ -25,33 +27,41 @@ export class MackerelClient {
     searchParams?: URLSearchParams,
   ): string {
     const paramsString = searchParams ? searchParams.toString() : "";
-    return `${method}:${path}:${paramsString}`;
+    return `${this.apiKey}:${method}:${path}:${paramsString}`;
   }
 
-  private getFromCache<T>(cacheKey: string): T | null {
-    const entry = this.cacheMap.get(cacheKey);
-    if (!entry) {
-      return null;
+  private async getFromCache<T>(cacheKey: string): Promise<T | null> {
+    try {
+      const cache = caches.default;
+      const cachedResponse = await cache.match(
+        new Request(`https://cache.mackerel-mcp/${cacheKey}`),
+      );
+      if (cachedResponse) {
+        return (await cachedResponse.json()) as T;
+      }
+    } catch {
     }
+    return null;
+  }
 
-    const now = Date.now();
-    if (now - entry.timestamp > this.cacheTTL) {
-      this.cacheMap.delete(cacheKey);
-      return null;
+  private async setCache(cacheKey: string, data: any): Promise<void> {
+    try {
+      const cache = caches.default;
+      const response = new Response(JSON.stringify(data), {
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": `max-age=${this.cacheTTL}`,
+        },
+      });
+      await cache.put(
+        new Request(`https://cache.mackerel-mcp/${cacheKey}`),
+        response,
+      );
+    } catch {
     }
-
-    return entry.data as T;
   }
 
-  private setCache(cacheKey: string, data: any): void {
-    this.cacheMap.set(cacheKey, {
-      data,
-      timestamp: Date.now(),
-    });
-  }
-
-  public clearCache(): void {
-    this.cacheMap.clear();
+  public async clearCache(): Promise<void> {
   }
 
   private async request<T>(
@@ -65,10 +75,9 @@ export class MackerelClient {
       body?: any;
     } = {},
   ): Promise<T> {
-    // Only cache GET requests
     if (method === "GET") {
       const cacheKey = this.getCacheKey(method, path, searchParams);
-      const cachedResult = this.getFromCache<T>(cacheKey);
+      const cachedResult = await this.getFromCache<T>(cacheKey);
       if (cachedResult !== null) {
         return cachedResult;
       }
@@ -98,16 +107,14 @@ export class MackerelClient {
 
     const result = (await response.json()) as T;
 
-    // Cache GET requests only
     if (method === "GET") {
       const cacheKey = this.getCacheKey(method, path, searchParams);
-      this.setCache(cacheKey, result);
+      await this.setCache(cacheKey, result);
     }
 
     return result;
   }
 
-  // GET /api/v0/alerts
   async getAlerts(
     withClosed: boolean | undefined,
     nextId: string | undefined,
@@ -131,12 +138,10 @@ export class MackerelClient {
     );
   }
 
-  // GET /api/v0/alerts/{alertId}
   async getAlert(alertId: string) {
     return this.request<{ alert: any }>("GET", `/api/v0/alerts/${alertId}`);
   }
 
-  // GET /api/v0/alerts/{alertId}/logs
   async getAlertLogs(
     alertId: string,
     nextId: string | undefined,
@@ -157,7 +162,6 @@ export class MackerelClient {
     );
   }
 
-  // GET /api/v0/dashboards
   async getDashboards(
     limit?: number,
     offset?: number,
@@ -190,14 +194,12 @@ export class MackerelClient {
     };
   }
 
-  // GET /api/v0/dashboards/{dashboardId}
   async getDashboard(dashboardId: string) {
     return this.request<any>("GET", `/api/v0/dashboards/${dashboardId}`);
   }
 
   private static WidgetArray = z.array(DashboardTool.WidgetSchema);
 
-  // PUT /api/v0/dashboards/{dashboardId}
   async updateDashboard(
     dashboardId: string,
     dashboard: {
@@ -212,7 +214,6 @@ export class MackerelClient {
     });
   }
 
-  // GET /api/v0/hosts
   async getHosts(
     service: string | undefined,
     role: string[] | undefined,
@@ -254,7 +255,6 @@ export class MackerelClient {
       },
     );
 
-    // Apply client-side pagination since Mackerel API doesn't support it natively
     const effectiveLimit = limit || 20;
     const effectiveOffset = offset || 0;
     const totalHosts = response.hosts.length;
@@ -275,7 +275,6 @@ export class MackerelClient {
     };
   }
 
-  // GET /api/v0/hosts/{hostId}/metrics
   async getHostMetrics(
     hostId: string,
     name: string,
@@ -294,12 +293,10 @@ export class MackerelClient {
     );
   }
 
-  // GET /api/v0/services
   async getServices(): Promise<{ services: any[] }> {
     return this.request<{ services: any[] }>("GET", "/api/v0/services");
   }
 
-  // GET /api/v0/services/{serviceName}/metrics
   async getServiceMetrics(
     serviceName: string,
     name: string,
@@ -318,12 +315,10 @@ export class MackerelClient {
     );
   }
 
-  // GET /api/v0/monitors
   async getMonitors(): Promise<{ monitors: any[] }> {
     return this.request<{ monitors: any[] }>("GET", "/api/v0/monitors");
   }
 
-  // GET /api/v0/monitors/{monitorId}
   async getMonitor(monitorId: string) {
     return this.request<{ monitor: any }>(
       "GET",
@@ -331,12 +326,10 @@ export class MackerelClient {
     );
   }
 
-  // GET /api/v0/traces/{traceId}
   async getTrace(traceId: string): Promise<{ spans: any[] }> {
     return this.request<{ spans: any[] }>("GET", `/api/v0/traces/${traceId}`);
   }
 
-  // GET /api/v0/apm/http-server-stats
   async getHttpServerStats(
     serviceName: string,
     from: number,
@@ -408,7 +401,6 @@ export class MackerelClient {
     }>("GET", "/api/v0/apm/http-server-stats", { searchParams });
   }
 
-  // GET /api/v0/apm/db-query-stats
   async getDbQueryStats(
     serviceName: string,
     from: number,
@@ -472,35 +464,36 @@ export class MackerelClient {
     }>("GET", "/api/v0/apm/db-query-stats", { searchParams });
   }
 
-  // POST /api/v0/traces
-  async listTraces(params: {
-    serviceName: string;
-    from: number;
-    to: number;
-    serviceNamespace?: string;
-    environment?: string;
-    traceId?: string;
-    spanName?: string;
-    version?: string;
-    issueFingerprint?: string;
-    minLatencyMillis?: number;
-    maxLatencyMillis?: number;
-    attributes?: Array<{
-      key: string;
-      value: string;
-      type: string;
-      operator: string;
-    }>;
-    resourceAttributes?: Array<{
-      key: string;
-      value: string;
-      type: string;
-      operator: string;
-    }>;
-    page?: number;
-    perPage?: number;
-    order?: { column: string; direction: string };
-  }): Promise<{
+  async listTraces(
+    params: {
+      serviceName: string;
+      from: number;
+      to: number;
+      serviceNamespace?: string;
+      environment?: string;
+      traceId?: string;
+      spanName?: string;
+      version?: string;
+      issueFingerprint?: string;
+      minLatencyMillis?: number;
+      maxLatencyMillis?: number;
+      attributes?: Array<{
+        key: string;
+        value: string;
+        type: string;
+        operator: string;
+      }>;
+      resourceAttributes?: Array<{
+        key: string;
+        value: string;
+        type: string;
+        operator: string;
+      }>;
+      page?: number;
+      perPage?: number;
+      order?: { column: string; direction: string };
+    },
+  ): Promise<{
     results: Array<{
       traceId: string;
       serviceName: string;

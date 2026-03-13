@@ -37,7 +37,6 @@ function replacePlaceholdersInFile(filePath) {
   const newContent = content.replace(PLACEHOLDER, BASE_URL);
   writeFileSync(filePath, newContent, "utf-8");
 
-  console.log(`✓ Replaced {{BaseURL}} with "${BASE_URL}" in ${filePath}`);
   return true;
 }
 

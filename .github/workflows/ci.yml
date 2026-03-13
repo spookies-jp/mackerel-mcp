@@ -12,17 +12,18 @@ jobs:
         node-version: [22.x, 20.x]
 
     steps:
-    - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-      with:
-        node-version: ${{ matrix.node-version }}
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ matrix.node-version }}
 
-    - run: npm ci
-    - run: npm run build
-    - run: npm run format:check
-    - run: npm run test
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm run format:check
+      - run: npm run test
 
   test_latest:
     name: Node Test for Latest
@@ -32,6 +33,7 @@ jobs:
       - uses: ./.github/actions/setup-latest-npm
 
       - run: npm ci
+      - run: npm run typecheck
       - run: npm run build
       - run: npm run format:check
       - run: npm test

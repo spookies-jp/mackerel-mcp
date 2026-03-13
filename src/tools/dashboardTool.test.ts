@@ -179,7 +179,7 @@ describe("Dashboard Tool", () => {
     });
 
     const resultData = JSON.parse(
-      (result.content![0] as { text: string }).text,
+      (result.content as { text: string }[])[0].text,
     );
 
     expect(resultData.dashboards).toHaveLength(10);

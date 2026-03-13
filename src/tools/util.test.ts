@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { buildToolResponse } from "./util.js";
 
+type TextContent = { type: "text"; text: string };
+
 describe("buildToolResponse", () => {
   it("should return normal response for small data", async () => {
     const smallData = { message: "test" };
@@ -9,7 +11,9 @@ describe("buildToolResponse", () => {
     expect(result.isError).toBeUndefined();
     expect(result.content).toHaveLength(1);
     expect(result.content[0].type).toBe("text");
-    expect(result.content[0].text).toBe(JSON.stringify(smallData));
+    expect((result.content[0] as TextContent).text).toBe(
+      JSON.stringify(smallData),
+    );
   });
 
   it("should return token limit error for large data", async () => {
@@ -28,10 +32,14 @@ describe("buildToolResponse", () => {
     expect(result.isError).toBe(true);
     expect(result.content).toHaveLength(1);
     expect(result.content[0].type).toBe("text");
-    expect(result.content[0].text).toContain("Response too large");
-    expect(result.content[0].text).toContain("25,000");
-    expect(result.content[0].text).toContain("limit parameter");
-    expect(result.content[0].text).toContain("pagination");
+    expect((result.content[0] as TextContent).text).toContain(
+      "Response too large",
+    );
+    expect((result.content[0] as TextContent).text).toContain("25,000");
+    expect((result.content[0] as TextContent).text).toContain(
+      "limit parameter",
+    );
+    expect((result.content[0] as TextContent).text).toContain("pagination");
   });
 
   it("should handle errors properly", async () => {
@@ -43,7 +51,9 @@ describe("buildToolResponse", () => {
     expect(result.isError).toBe(true);
     expect(result.content).toHaveLength(1);
     expect(result.content[0].type).toBe("text");
-    expect(result.content[0].text).toBe(`Error occurred: ${errorMessage}`);
+    expect((result.content[0] as TextContent).text).toBe(
+      `Error occurred: ${errorMessage}`,
+    );
   });
 
   it("should handle non-Error exceptions", async () => {
@@ -55,6 +65,8 @@ describe("buildToolResponse", () => {
     expect(result.isError).toBe(true);
     expect(result.content).toHaveLength(1);
     expect(result.content[0].type).toBe("text");
-    expect(result.content[0].text).toBe(`Error occurred: ${errorValue}`);
+    expect((result.content[0] as TextContent).text).toBe(
+      `Error occurred: ${errorValue}`,
+    );
   });
 });

@@ -346,7 +346,9 @@ describe("Trace Tool", () => {
       },
     });
 
-    const responseData = JSON.parse(result.content[0].text as string);
+    const responseData = JSON.parse(
+      (result.content as { text: string }[])[0].text as string,
+    );
 
     expect(responseData.traceId).toBe("trace123");
     expect(responseData.summary.totalSpans).toBe(4);
@@ -389,7 +391,9 @@ describe("Trace Tool", () => {
       },
     });
 
-    const responseData = JSON.parse(result.content[0].text as string);
+    const responseData = JSON.parse(
+      (result.content as { text: string }[])[0].text as string,
+    );
 
     expect(responseData.summary.totalSpans).toBe(4);
     expect(responseData.spans).toHaveLength(2);
@@ -424,7 +428,9 @@ describe("Trace Tool", () => {
       },
     });
 
-    const responseData = JSON.parse(result.content[0].text as string);
+    const responseData = JSON.parse(
+      (result.content as { text: string }[])[0].text as string,
+    );
 
     expect(responseData.summary.totalSpans).toBe(4);
     expect(responseData.spans).toHaveLength(1);
@@ -454,7 +460,9 @@ describe("Trace Tool", () => {
       },
     });
 
-    const responseData = JSON.parse(result.content[0].text as string);
+    const responseData = JSON.parse(
+      (result.content as { text: string }[])[0].text as string,
+    );
 
     const spanWithAttributes = responseData.spans.find(
       (s: any) => s.spanId === "span1",
@@ -485,7 +493,9 @@ describe("Trace Tool", () => {
       },
     });
 
-    const responseData = JSON.parse(result.content[0].text as string);
+    const responseData = JSON.parse(
+      (result.content as { text: string }[])[0].text as string,
+    );
 
     responseData.spans.forEach((span: any) => {
       expect(span.events).toBeUndefined();
@@ -514,7 +524,9 @@ describe("Trace Tool", () => {
       },
     });
 
-    const responseData = JSON.parse(result.content[0].text as string);
+    const responseData = JSON.parse(
+      (result.content as { text: string }[])[0].text as string,
+    );
 
     expect(responseData.summary.totalSpans).toBe(4);
     expect(responseData.spans).toHaveLength(2);
@@ -552,7 +564,9 @@ describe("Trace Tool", () => {
       },
     });
 
-    const responseData = JSON.parse(result.content[0].text as string);
+    const responseData = JSON.parse(
+      (result.content as { text: string }[])[0].text as string,
+    );
 
     expect(responseData.summary.totalSpans).toBe(4);
     expect(responseData.spans).toHaveLength(1);
@@ -589,7 +603,9 @@ describe("Trace Tool", () => {
       },
     });
 
-    const responseData = JSON.parse(result.content[0].text as string);
+    const responseData = JSON.parse(
+      (result.content as { text: string }[])[0].text as string,
+    );
 
     expect(responseData.summary.totalSpans).toBe(4);
     expect(responseData.spans).toHaveLength(0);
@@ -624,7 +640,9 @@ describe("Trace Tool", () => {
       },
     });
 
-    const responseData = JSON.parse(result.content[0].text as string);
+    const responseData = JSON.parse(
+      (result.content as { text: string }[])[0].text as string,
+    );
 
     expect(responseData.summary.totalSpans).toBe(4);
     expect(responseData.spans).toHaveLength(1);
@@ -692,7 +710,9 @@ describe("Trace Tool", () => {
       },
     });
 
-    const responseData = JSON.parse(result.content[0].text as string);
+    const responseData = JSON.parse(
+      (result.content as { text: string }[])[0].text as string,
+    );
 
     expect(responseData.summary.hasErrors).toBe(true);
     expect(responseData.spans).toHaveLength(2);
@@ -759,7 +779,9 @@ describe("Trace Tool", () => {
       },
     });
 
-    const responseData = JSON.parse(result.content[0].text as string);
+    const responseData = JSON.parse(
+      (result.content as { text: string }[])[0].text as string,
+    );
 
     expect(responseData.summary.totalSpans).toBe(2);
     expect(responseData.spans).toHaveLength(1);
@@ -833,7 +855,9 @@ describe("Trace Tool", () => {
       },
     });
 
-    const responseData = JSON.parse(result.content[0].text as string);
+    const responseData = JSON.parse(
+      (result.content as { text: string }[])[0].text as string,
+    );
 
     expect(responseData.summary.totalSpans).toBe(3);
     expect(responseData.spans).toHaveLength(2);
@@ -870,6 +894,8 @@ describe("Trace Tool", () => {
     });
 
     expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("Mackerel API error: 404");
+    expect((result.content as { text: string }[])[0].text).toContain(
+      "Mackerel API error: 404",
+    );
   });
 });

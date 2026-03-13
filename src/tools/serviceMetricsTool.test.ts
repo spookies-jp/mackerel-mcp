@@ -96,7 +96,7 @@ describe("ServiceMetrics Tool", () => {
     });
 
     expect(result.isError).toBe(true);
-    const errorText = result.content[0].text;
+    const errorText = (result.content as { text: string }[])[0].text;
     expect(errorText).toContain(
       "## Resource Not Found: Invalid Service or Metric",
     );
@@ -139,7 +139,7 @@ describe("ServiceMetrics Tool", () => {
     });
 
     expect(result.isError).toBe(true);
-    const errorText = result.content[0].text;
+    const errorText = (result.content as { text: string }[])[0].text;
     expect(errorText).toContain("## Service Not Found");
     expect(errorText).toContain(
       "Use the list_services tool to find valid service names",
@@ -178,7 +178,7 @@ describe("ServiceMetrics Tool", () => {
     });
 
     expect(result.isError).toBe(true);
-    const errorText = result.content[0].text;
+    const errorText = (result.content as { text: string }[])[0].text;
     expect(errorText).toContain("## Metric Not Found");
     expect(errorText).toContain("## Available Service Metrics:");
     expect(errorText).toContain("Custom metrics posted to your service");

@@ -1,6 +1,7 @@
 {
   "name": "@mackerel/mcp-server",
   "version": "0.4.0",
+  "packageManager": "pnpm@10.12.1",
   "publishConfig": {
     "access": "public"
   },
@@ -16,7 +17,8 @@
     "inspector": "npx @modelcontextprotocol/inspector -e MACKEREL_APIKEY=$MACKEREL_APIKEY tsx src/index.ts",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
-    "test": "vitest run"
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
   "license": "Apache-2.0",
   "files": [
@@ -40,16 +42,16 @@
     "mcp"
   ],
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.17.2",
-    "zod": "^3.25.76"
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/node": "^24.2.1",
-    "msw": "^2.10.5",
-    "prettier": "^3.6.2",
-    "tsdown": "^0.14.1",
-    "tsx": "^4.20.3",
-    "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "@types/node": "^25.5.0",
+    "msw": "^2.12.10",
+    "prettier": "^3.8.1",
+    "tsdown": "^0.21.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
   }
 }

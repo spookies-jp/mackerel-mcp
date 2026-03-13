@@ -86,7 +86,7 @@ describe("HostMetrics Tool", () => {
     });
 
     expect(result.isError).toBe(true);
-    const errorText = result.content[0].text;
+    const errorText = (result.content as { text: string }[])[0].text;
     expect(errorText).toContain(
       "## Resource Not Found: Invalid Host or Metric",
     );
@@ -127,7 +127,7 @@ describe("HostMetrics Tool", () => {
     });
 
     expect(result.isError).toBe(true);
-    const errorText = result.content[0].text;
+    const errorText = (result.content as { text: string }[])[0].text;
     expect(errorText).toContain("## Host Not Found");
     expect(errorText).toContain(
       "Use the list_hosts tool to find valid host IDs",
@@ -163,7 +163,7 @@ describe("HostMetrics Tool", () => {
     });
 
     expect(result.isError).toBe(true);
-    const errorText = result.content[0].text;
+    const errorText = (result.content as { text: string }[])[0].text;
     expect(errorText).toContain("## Metric Not Found");
     expect(errorText).toContain("## Available Host Metrics:");
     expect(errorText).toContain("loadavg1, loadavg5, loadavg15");

@@ -41,11 +41,16 @@ describe("Monitor Tool", () => {
       }),
     );
 
-    const server = setupServer("list_monitors", {}, monitorTool.listMonitors);
+    const server = setupServer(
+      "list_monitors",
+      { inputSchema: MonitorTool.ListMonitorsToolInput.shape },
+      monitorTool.listMonitors,
+    );
     const { client } = await setupClient(server);
 
     const result = await client.callTool({
       name: "list_monitors",
+      arguments: {},
     });
 
     expect(result).toEqual({

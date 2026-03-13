@@ -153,7 +153,8 @@ function createServer(mackerelClient: MackerelClient) {
     "get_service_metrics",
     {
       title: "Get Service Metrics",
-      description: "Retrieve metrics data for a specific service from Mackerel.",
+      description:
+        "Retrieve metrics data for a specific service from Mackerel.",
       inputSchema: ServiceMetricsTool.GetServiceMetricsToolInput.shape,
       annotations: {
         readOnlyHint: true,
@@ -179,7 +180,8 @@ function createServer(mackerelClient: MackerelClient) {
     "get_monitor",
     {
       title: "Get Monitor",
-      description: "Retrieve a specific monitor configuration by ID from Mackerel.",
+      description:
+        "Retrieve a specific monitor configuration by ID from Mackerel.",
       inputSchema: MonitorTool.GetMonitorToolInput.shape,
       annotations: {
         readOnlyHint: true,
@@ -192,7 +194,8 @@ function createServer(mackerelClient: MackerelClient) {
     "get_trace",
     {
       title: "Get Trace",
-      description: "Retrieve trace data by trace ID from Mackerel for distributed tracing analysis.",
+      description:
+        "Retrieve trace data by trace ID from Mackerel for distributed tracing analysis.",
       inputSchema: TraceTool.GetTraceToolInput.shape,
       annotations: {
         readOnlyHint: true,
@@ -205,7 +208,8 @@ function createServer(mackerelClient: MackerelClient) {
     "list_traces",
     {
       title: "List Traces",
-      description: "Search and retrieve traces from Mackerel for distributed tracing analysis.",
+      description:
+        "Search and retrieve traces from Mackerel for distributed tracing analysis.",
       inputSchema: TraceTool.ListTracesToolInput.shape,
       annotations: {
         readOnlyHint: true,
@@ -252,9 +256,9 @@ app.all(API_ROUTE, async (c) => {
     return c.json(
       {
         error: "Unauthorized",
-        message: "MACKEREL_APIKEY environment variable is not set."
+        message: "MACKEREL_APIKEY environment variable is not set.",
       },
-      401
+      401,
     );
   }
 
@@ -264,9 +268,9 @@ app.all(API_ROUTE, async (c) => {
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: () => crypto.randomUUID(),
   });
-  
+
   await server.connect(transport);
-  
+
   return transport.handleRequest(c.req.raw);
 });
 

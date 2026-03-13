@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  beforeAll,
+  afterAll,
+  vi,
+} from "vitest";
 import { MackerelClient } from "./client.js";
 import { mswServer } from "./mocks/server.js";
 import { HttpResponse, http } from "msw";
@@ -10,7 +18,7 @@ describe("MackerelClient Cache", () => {
 
   beforeAll(() => {
     mockCache = new Map();
-    
+
     const mockCaches = {
       default: {
         match: async (request: Request) => {
@@ -24,8 +32,9 @@ describe("MackerelClient Cache", () => {
         },
       },
     };
-    
-    (globalThis as typeof globalThis & { caches: typeof mockCaches }).caches = mockCaches;
+
+    (globalThis as typeof globalThis & { caches: typeof mockCaches }).caches =
+      mockCaches;
   });
 
   beforeEach(() => {

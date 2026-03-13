@@ -64,9 +64,6 @@ function processDirectory(dir) {
   return processedCount;
 }
 
-console.log(`Replacing {{BaseURL}} with: ${BASE_URL}`);
-console.log(`Processing directory: ${PUBLIC_DIR}\n`);
-
 const count = processDirectory(PUBLIC_DIR);
 
 if (count === 0) {

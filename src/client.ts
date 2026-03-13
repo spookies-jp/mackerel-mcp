@@ -39,8 +39,7 @@ export class MackerelClient {
       if (cachedResponse) {
         return (await cachedResponse.json()) as T;
       }
-    } catch {
-    }
+    } catch {}
     return null;
   }
 
@@ -57,12 +56,10 @@ export class MackerelClient {
         new Request(`https://cache.mackerel-mcp/${cacheKey}`),
         response,
       );
-    } catch {
-    }
+    } catch {}
   }
 
-  public async clearCache(): Promise<void> {
-  }
+  public async clearCache(): Promise<void> {}
 
   private async request<T>(
     method: string,
@@ -464,36 +461,34 @@ export class MackerelClient {
     }>("GET", "/api/v0/apm/db-query-stats", { searchParams });
   }
 
-  async listTraces(
-    params: {
-      serviceName: string;
-      from: number;
-      to: number;
-      serviceNamespace?: string;
-      environment?: string;
-      traceId?: string;
-      spanName?: string;
-      version?: string;
-      issueFingerprint?: string;
-      minLatencyMillis?: number;
-      maxLatencyMillis?: number;
-      attributes?: Array<{
-        key: string;
-        value: string;
-        type: string;
-        operator: string;
-      }>;
-      resourceAttributes?: Array<{
-        key: string;
-        value: string;
-        type: string;
-        operator: string;
-      }>;
-      page?: number;
-      perPage?: number;
-      order?: { column: string; direction: string };
-    },
-  ): Promise<{
+  async listTraces(params: {
+    serviceName: string;
+    from: number;
+    to: number;
+    serviceNamespace?: string;
+    environment?: string;
+    traceId?: string;
+    spanName?: string;
+    version?: string;
+    issueFingerprint?: string;
+    minLatencyMillis?: number;
+    maxLatencyMillis?: number;
+    attributes?: Array<{
+      key: string;
+      value: string;
+      type: string;
+      operator: string;
+    }>;
+    resourceAttributes?: Array<{
+      key: string;
+      value: string;
+      type: string;
+      operator: string;
+    }>;
+    page?: number;
+    perPage?: number;
+    order?: { column: string; direction: string };
+  }): Promise<{
     results: Array<{
       traceId: string;
       serviceName: string;
